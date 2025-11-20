@@ -17,7 +17,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtFiltro extends OncePerRequestFilter {
 
-    private final JwtUtil jwtUtil;
+    private final JwtUtil jwtUtil; // Injeta o Utilitário JWT
     private final UserDetailsService detalhesService;
 
     @Override
@@ -26,24 +26,35 @@ public class JwtFiltro extends OncePerRequestFilter {
                                     FilterChain chain)
             throws ServletException, IOException {
 
+        // --- BYPASS PARA ROTAS PÚBLICAS (CORREÇÃO DO 403) ---
+        String requestUri = request.getRequestURI();
+
+        if (requestUri.contains("/auth/login") || requestUri.contains("/auth/register")) {
+            chain.doFilter(request, response);
+            return;
+        }
+        // -----------------------------------------------------
+
         String header = request.getHeader("Authorization");
 
         if (header != null && header.startsWith("Bearer ")) {
 
             String token = header.substring(7);
-            String email = jwtUtil.extrairEmail(token);
+            String email = jwtUtil.extrairEmail(token); // Usa a função extrairEmail corrigida
 
-            UserDetails user = detalhesService.loadUserByUsername(email);
+            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+                UserDetails user = detalhesService.loadUserByUsername(email);
 
-            auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
 
-            SecurityContextHolder.getContext().setAuthentication(auth);
+                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
         }
 
         chain.doFilter(request, response);
     }
 }
-

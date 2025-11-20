@@ -20,9 +20,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    // --------------------------
-    // REGISTER
-    // --------------------------
+
     @PostMapping("/register")
     public Usuario register(@RequestBody Usuario usuario) {
 
